@@ -1,0 +1,181 @@
+/* ── Reset & base ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #242838;
+  --border: #2e3347;
+  --accent: #4f8ef7;
+  --accent-hover: #6ba3fa;
+  --text: #e2e6f0;
+  --muted: #7b849e;
+  --green: #3ecf8e;
+  --radius: 10px;
+  --shadow: 0 4px 24px rgba(0,0,0,.4);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── Layout ───────────────────────────────────────────────────── */
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 24px 32px;
+  text-align: center;
+}
+
+header h1 { font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px; }
+.subtitle  { color: var(--muted); margin-top: 4px; }
+
+main {
+  max-width: 900px;
+  margin: 32px auto;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  box-shadow: var(--shadow);
+}
+
+.card h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 20px; }
+
+/* ── Form ─────────────────────────────────────────────────────── */
+.field { margin-bottom: 18px; }
+.field label { display: block; font-weight: 500; margin-bottom: 6px; }
+.hint { color: var(--muted); font-size: 0.82rem; font-weight: 400; }
+
+input[type="text"], select {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 14px;
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color .2s;
+}
+input[type="text"]:focus, select:focus { border-color: var(--accent); }
+
+/* Drop zone */
+.drop-zone {
+  position: relative;
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  padding: 28px;
+  text-align: center;
+  transition: border-color .2s, background .2s;
+  cursor: pointer;
+}
+.drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent); background: rgba(79,142,247,.06); }
+.drop-zone input[type="file"] {
+  position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer;
+}
+.drop-label { display: flex; flex-direction: column; gap: 6px; align-items: center; pointer-events: none; }
+.drop-label .icon { font-size: 2rem; }
+.file-name { font-size: 0.85rem; color: var(--green); font-weight: 500; }
+
+/* Row */
+.row { display: flex; gap: 24px; align-items: flex-start; }
+.row > * { flex: 1; }
+.checkbox-field { display: flex; align-items: center; gap: 10px; padding-top: 28px; }
+.checkbox-field input { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+
+/* ── Buttons ──────────────────────────────────────────────────── */
+.btn-primary, .btn-secondary {
+  border: none; border-radius: 6px; cursor: pointer; font-size: 14px;
+  font-weight: 600; padding: 10px 20px; transition: background .2s, opacity .2s;
+}
+.btn-primary {
+  background: var(--accent); color: #fff; width: 100%; padding: 12px;
+  font-size: 15px;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+
+.btn-secondary {
+  background: var(--surface2); color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Progress ─────────────────────────────────────────────────── */
+.progress-bar {
+  height: 6px; background: var(--surface2); border-radius: 3px;
+  margin-top: 20px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; background: var(--accent);
+  width: 0; border-radius: 3px;
+  transition: width .4s ease;
+  animation: pulse-progress 1.5s ease-in-out infinite;
+}
+@keyframes pulse-progress {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .6; }
+}
+#progress-text { margin-top: 10px; color: var(--muted); font-size: 14px; }
+
+/* ── Result ───────────────────────────────────────────────────── */
+.result-header {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px; margin-bottom: 20px;
+}
+.export-btns { display: flex; gap: 10px; }
+
+/* Tabs */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+.tab {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  font-size: 14px; font-weight: 500; padding: 8px 16px;
+  border-bottom: 2px solid transparent; transition: color .2s, border-color .2s;
+}
+.tab.active, .tab:hover { color: var(--text); }
+.tab.active { border-bottom-color: var(--accent); }
+
+/* Notes (rendered markdown-ish) */
+.notes { line-height: 1.75; }
+.notes h2 { font-size: 1.05rem; margin: 20px 0 8px; color: var(--accent); }
+.notes h3 { font-size: 0.95rem; margin: 16px 0 6px; color: var(--text); }
+.notes p  { margin-bottom: 10px; }
+.notes ul, .notes ol { padding-left: 22px; margin-bottom: 10px; }
+.notes li { margin-bottom: 4px; }
+.notes hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+/* Transcript */
+.transcript {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 16px; font-family: 'Consolas', monospace;
+  font-size: 13px; line-height: 1.8; white-space: pre-wrap; overflow-x: auto;
+  color: var(--text);
+}
+
+/* ── Meetings list ────────────────────────────────────────────── */
+.meetings-table { width: 100%; border-collapse: collapse; }
+.meetings-table th, .meetings-table td {
+  text-align: left; padding: 10px 14px;
+  border-bottom: 1px solid var(--border); font-size: 14px;
+}
+.meetings-table th { color: var(--muted); font-weight: 500; }
+.meetings-table tr:last-child td { border-bottom: none; }
+.meetings-table tr:hover td { background: var(--surface2); cursor: pointer; }
+.meetings-table .muted { color: var(--muted); }
+
+/* ── Utilities ────────────────────────────────────────────────── */
+.hidden  { display: none !important; }
+.muted   { color: var(--muted); }

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Türkçe Toplantı Asistanı</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <h1>🎙️ Türkçe Toplantı Asistanı</h1>
+    <p class="subtitle">Toplantı ses kayıtlarını transkribe et, notlar oluştur</p>
+  </header>
+
+  <main>
+    <!-- Upload Section -->
+    <section class="card" id="upload-section">
+      <h2>Ses Dosyası Yükle</h2>
+      <form id="upload-form">
+        <div class="field">
+          <label for="audio-file">Ses Dosyası <span class="hint">(MP3, WAV, M4A, OGG, FLAC, WEBM — maks 500 MB)</span></label>
+          <div class="drop-zone" id="drop-zone">
+            <input type="file" id="audio-file" name="audio" accept="audio/*,video/webm,video/mp4" required />
+            <div class="drop-label">
+              <span class="icon">📁</span>
+              <span>Sürükle &amp; bırak veya <strong>seç</strong></span>
+              <span id="file-name" class="file-name"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="title">Toplantı Başlığı <span class="hint">(isteğe bağlı)</span></label>
+          <input type="text" id="title" name="title" placeholder="Haftalık Ekip Toplantısı..." />
+        </div>
+
+        <div class="field row">
+          <div>
+            <label for="model">Whisper Modeli</label>
+            <select id="model" name="model">
+              <option value="tiny">tiny — En hızlı, düşük doğruluk</option>
+              <option value="base" selected>base — Hızlı, iyi doğruluk</option>
+              <option value="small">small — Orta hız ve doğruluk</option>
+              <option value="medium">medium — Yavaş, yüksek doğruluk</option>
+              <option value="large">large — En yavaş, en yüksek doğruluk</option>
+            </select>
+          </div>
+          <div class="checkbox-field">
+            <input type="checkbox" id="generate-notes" name="generate_notes" value="true" checked />
+            <label for="generate-notes">Yapay zeka notları oluştur</label>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" id="submit-btn">Transkribe Et</button>
+      </form>
+
+      <!-- Progress -->
+      <div id="progress-area" class="hidden">
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        <p id="progress-text">Başlatılıyor...</p>
+      </div>
+    </section>
+
+    <!-- Result Section -->
+    <section class="card hidden" id="result-section">
+      <div class="result-header">
+        <h2 id="result-title"></h2>
+        <div class="export-btns">
+          <button class="btn-secondary" id="export-md-btn">⬇ Markdown İndir</button>
+          <button class="btn-secondary" id="export-txt-btn">⬇ TXT İndir</button>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" data-tab="notes">Notlar</button>
+        <button class="tab" data-tab="transcript">Transkript</button>
+      </div>
+
+      <div id="tab-notes" class="tab-content">
+        <div id="notes-content" class="notes"></div>
+      </div>
+      <div id="tab-transcript" class="tab-content hidden">
+        <pre id="transcript-content" class="transcript"></pre>
+      </div>
+    </section>
+
+    <!-- Meetings List -->
+    <section class="card" id="meetings-section">
+      <h2>Kaydedilen Toplantılar</h2>
+      <div id="meetings-list"><p class="muted">Yükleniyor...</p></div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

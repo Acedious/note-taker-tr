@@ -30,6 +30,7 @@ let timerInterval = null;
 let timerSeconds = 0;
 let lastSavedPath = null;
 let fullTranscript = '';
+let webmHeader   = null;   // first chunk = WebM container header bytes
 
 // ── WebSocket ─────────────────────────────────────────────────────────────────
 
@@ -105,14 +106,25 @@ async function startRecording() {
 
   mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
 
-  // Send each chunk (every 5 s) as binary over WebSocket
+  // Send each chunk (every 5 s) as binary over WebSocket.
+  // WebM streams: the first chunk holds codec init headers needed to decode
+  // all later chunks. We store it and prepend it to every subsequent chunk
+  // so the server gets a valid self-contained WebM file each time.
   mediaRecorder.ondataavailable = async (e) => {
-    if (e.data.size > 0 && ws && ws.readyState === WebSocket.OPEN) {
-      const buf = await e.data.arrayBuffer();
+    if (e.data.size === 0 || !ws || ws.readyState !== WebSocket.OPEN) return;
+    const buf = await e.data.arrayBuffer();
+    if (webmHeader === null) {
+      webmHeader = buf;
       ws.send(buf);
+    } else {
+      const combined = new Uint8Array(webmHeader.byteLength + buf.byteLength);
+      combined.set(new Uint8Array(webmHeader), 0);
+      combined.set(new Uint8Array(buf), webmHeader.byteLength);
+      ws.send(combined.buffer);
     }
   };
 
+  webmHeader = null;           // reset for each new recording session
   mediaRecorder.start(5000);   // timeslice = 5 seconds
   recording = true;
   startTimer();

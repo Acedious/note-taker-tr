@@ -29,6 +29,17 @@ def create_app() -> Flask:
     sock = Sock(app)
 
     # ------------------------------------------------------------------
+    # Chrome Private Network Access header (required for ws://localhost
+    # connections initiated from https://meet.google.com in Chrome 98+)
+    # ------------------------------------------------------------------
+
+    @app.after_request
+    def add_pna_headers(response):
+        response.headers["Access-Control-Allow-Private-Network"] = "true"
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        return response
+
+    # ------------------------------------------------------------------
     # Static pages
     # ------------------------------------------------------------------
 

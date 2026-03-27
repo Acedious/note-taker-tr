@@ -231,6 +231,7 @@
     let timerInterval = null;
     let fullText     = '';
     let notesMarkdown = '';
+    let webmHeader   = null;   // first chunk = WebM container header bytes
 
     // ── WebSocket ────────────────────────────────────────────────────────────
 
@@ -293,13 +294,26 @@
 
         mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
         mediaRecorder.ondataavailable = async (e) => {
-          if (e.data.size > 0 && ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(await e.data.arrayBuffer());
+          if (e.data.size === 0 || !ws || ws.readyState !== WebSocket.OPEN) return;
+          const buf = await e.data.arrayBuffer();
+          if (webmHeader === null) {
+            // First chunk: contains EBML/codec init headers + initial audio.
+            // Store it so all later chunks can be prefixed before sending.
+            webmHeader = buf;
+            ws.send(buf);
+          } else {
+            // Subsequent chunks: prepend header so the server gets a valid
+            // self-contained WebM file for each Whisper transcription call.
+            const combined = new Uint8Array(webmHeader.byteLength + buf.byteLength);
+            combined.set(new Uint8Array(webmHeader), 0);
+            combined.set(new Uint8Array(buf), webmHeader.byteLength);
+            ws.send(combined.buffer);
           }
         };
         mediaRecorder.start(5000);
       });
 
+      webmHeader = null;  // reset for each new recording session
       recording = true;
       btnRec.classList.add('active');
       btnRec.innerHTML = '<span class="rec-dot"></span>Durdur';

@@ -51,6 +51,10 @@ class LiveSession:
         self.segments: list[str] = []
         self.title: str = ""
         self._started_at: datetime | None = None
+        # WebM container fix: the first binary chunk contains the EBML/codec
+        # headers required to decode all subsequent chunks. We prepend these
+        # header bytes to every chunk before passing it to Whisper.
+        self._webm_header: bytes | None = None
 
     # ------------------------------------------------------------------
     # Public API (called from the WebSocket thread)
@@ -65,6 +69,12 @@ class LiveSession:
     def add_audio(self, audio_bytes: bytes):
         if not self._running:
             return
+        # First chunk is the WebM stream header — store it and also transcribe
+        # it (it may already contain audio data). All later chunks are prepended
+        # with this header before being written to a temp file so that Whisper
+        # receives a valid, self-contained WebM file every time.
+        if self._webm_header is None:
+            self._webm_header = audio_bytes
         try:
             self._queue.put_nowait(("audio", audio_bytes))
         except queue.Full:
@@ -108,8 +118,14 @@ class LiveSession:
         self._status("Transkribe ediliyor...", "transcribing")
         tmp_path = None
         try:
+            # Prepend stored header bytes to every chunk except the very first
+            # (the first chunk IS the header, so no prepend needed).
+            data = audio_bytes
+            if self._webm_header is not None and audio_bytes is not self._webm_header:
+                data = self._webm_header + audio_bytes
+
             with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as f:
-                f.write(audio_bytes)
+                f.write(data)
                 tmp_path = f.name
 
             result = model.transcribe(tmp_path, language="tr", task="transcribe")

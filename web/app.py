@@ -1,6 +1,8 @@
 """
 Flask web application for the Turkish meeting transcription tool.
+Supports both file-upload (async job) and live WebSocket transcription.
 """
+import json
 import os
 import sys
 import tempfile
@@ -8,13 +10,15 @@ import threading
 from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request, send_file
+from flask_sock import Sock
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app import transcriber, notes as notes_module, storage
+from web.live_session import LiveSession
 
 
-# Job store — keyed by job_id
+# Job store for file-upload transcription — keyed by job_id
 _jobs: dict[str, dict] = {}
 _jobs_lock = threading.Lock()
 
@@ -22,14 +26,23 @@ _jobs_lock = threading.Lock()
 def create_app() -> Flask:
     app = Flask(__name__, template_folder="templates", static_folder="static")
     app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024  # 500 MB
+    sock = Sock(app)
 
     # ------------------------------------------------------------------
-    # Routes
+    # Static pages
     # ------------------------------------------------------------------
 
     @app.route("/")
     def index():
         return render_template("index.html")
+
+    @app.route("/live")
+    def live():
+        return render_template("live.html")
+
+    # ------------------------------------------------------------------
+    # Meetings REST API
+    # ------------------------------------------------------------------
 
     @app.route("/api/meetings")
     def api_list_meetings():
@@ -75,15 +88,12 @@ def create_app() -> Flask:
             download_name=f"{title_slug}.{fmt}",
         )
 
+    # ------------------------------------------------------------------
+    # File-upload transcription (async job)
+    # ------------------------------------------------------------------
+
     @app.route("/api/transcribe", methods=["POST"])
     def api_transcribe():
-        """
-        Accepts a multipart upload with:
-          - audio: the audio file
-          - title: meeting title (optional)
-          - model: whisper model name (optional, default base)
-          - generate_notes: "true"/"false" (optional, default true)
-        """
         if "audio" not in request.files:
             return jsonify({"error": "Ses dosyası gerekli ('audio' alanı)"}), 400
 
@@ -92,7 +102,6 @@ def create_app() -> Flask:
         model_name = request.form.get("model", "base")
         gen_notes = request.form.get("generate_notes", "true").lower() == "true"
 
-        # Save upload to a temp file
         suffix = Path(audio_file.filename or "audio.wav").suffix or ".wav"
         tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
         audio_file.save(tmp.name)
@@ -101,7 +110,6 @@ def create_app() -> Flask:
         if not title:
             title = Path(audio_file.filename or "Toplantı").stem.replace("_", " ").replace("-", " ").title()
 
-        # Run in background thread so the HTTP request can return a job_id
         import uuid
         job_id = str(uuid.uuid4())
         with _jobs_lock:
@@ -159,5 +167,68 @@ def create_app() -> Flask:
         if job is None:
             return jsonify({"error": "İş bulunamadı"}), 404
         return jsonify(job)
+
+    # ------------------------------------------------------------------
+    # Live transcription WebSocket
+    # ------------------------------------------------------------------
+
+    @sock.route("/ws/live")
+    def ws_live(ws):
+        """
+        WebSocket endpoint for real-time transcription.
+
+        Protocol (client → server):
+          TEXT  {"type": "init",  "model": "base", "title": "..."}
+          BINARY  raw audio bytes (WebM/Opus, one chunk per message)
+          TEXT  {"type": "notes"}   — generate notes from accumulated transcript
+          TEXT  {"type": "save"}    — persist meeting to disk
+          TEXT  {"type": "stop"}    — end session
+
+        Protocol (server → client):
+          TEXT  {"type": "transcript", "delta": "...", "full": "..."}
+          TEXT  {"type": "notes",      "text": "..."}
+          TEXT  {"type": "saved",      "path": "..."}
+          TEXT  {"type": "status",     "message": "...", "state": "..."}
+          TEXT  {"type": "error",      "message": "..."}
+        """
+        session: LiveSession | None = None
+        try:
+            while True:
+                data = ws.receive()
+                if data is None:
+                    break
+
+                if isinstance(data, str):
+                    msg = json.loads(data)
+                    kind = msg.get("type")
+
+                    if kind == "init":
+                        if session:
+                            session.stop()
+                        session = LiveSession(
+                            send_fn=ws.send,
+                            model_name=msg.get("model", "base"),
+                        )
+                        session.start(title=msg.get("title", ""))
+
+                    elif kind == "notes" and session:
+                        session.request_notes()
+
+                    elif kind == "save" and session:
+                        session.request_save()
+
+                    elif kind == "stop":
+                        if session:
+                            session.stop()
+                        break
+
+                elif isinstance(data, bytes) and session:
+                    session.add_audio(data)
+
+        except Exception:
+            pass
+        finally:
+            if session:
+                session.stop()
 
     return app

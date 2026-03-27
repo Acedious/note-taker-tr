@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Canlı Transkripsiyon — Türkçe Toplantı Asistanı</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/live.css" />
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div>
+        <h1>🎙️ Canlı Transkripsiyon</h1>
+        <p class="subtitle">Gerçek zamanlı Türkçe konuşma metne dönüştürme</p>
+      </div>
+      <a href="/" class="back-link">← Dosya yükleme</a>
+    </div>
+  </header>
+
+  <main>
+    <!-- Setup bar -->
+    <section class="card setup-bar">
+      <div class="setup-row">
+        <div class="field flex-1">
+          <label for="meeting-title">Toplantı Başlığı</label>
+          <input type="text" id="meeting-title" placeholder="Haftalık Ekip Toplantısı..." />
+        </div>
+        <div class="field">
+          <label for="model-select">Model</label>
+          <select id="model-select">
+            <option value="tiny">tiny — En hızlı</option>
+            <option value="base" selected>base — Dengeli</option>
+            <option value="small">small — Yüksek doğruluk</option>
+            <option value="medium">medium — Çok yüksek</option>
+            <option value="large">large — En yüksek</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="server-url">Sunucu</label>
+          <input type="text" id="server-url" value="ws://localhost:5000/ws/live" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Main workspace -->
+    <div class="workspace">
+      <!-- Left: transcript -->
+      <section class="card transcript-card">
+        <!-- Status + controls -->
+        <div class="controls-row">
+          <button id="btn-record" class="btn-record">
+            <span class="rec-dot"></span> Kaydı Başlat
+          </button>
+          <div id="status-badge" class="status-badge status-idle">Hazır</div>
+          <div class="spacer"></div>
+          <button id="btn-notes" class="btn-secondary" disabled>✦ Notlar Oluştur</button>
+          <button id="btn-save"  class="btn-secondary" disabled>💾 Kaydet</button>
+        </div>
+
+        <!-- Live waveform indicator -->
+        <div id="wave" class="wave hidden">
+          <span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+
+        <!-- Transcript display -->
+        <div id="transcript-box" class="transcript-box">
+          <p class="placeholder-text">Kaydı başlatınca transkript burada belirecek...</p>
+        </div>
+
+        <!-- Word count + timer -->
+        <div class="transcript-footer">
+          <span id="word-count">0 kelime</span>
+          <span id="timer">00:00</span>
+        </div>
+      </section>
+
+      <!-- Right: notes panel -->
+      <section class="card notes-card hidden" id="notes-panel">
+        <div class="notes-header">
+          <h2>Toplantı Notları</h2>
+          <div class="notes-actions">
+            <button class="btn-secondary" id="btn-export-md">⬇ Markdown</button>
+            <button class="btn-secondary" id="btn-export-txt">⬇ TXT</button>
+            <button class="btn-icon" id="btn-close-notes" title="Kapat">×</button>
+          </div>
+        </div>
+        <div id="notes-content" class="notes"></div>
+      </section>
+    </div>
+
+    <!-- Saved confirmation toast -->
+    <div id="toast" class="toast hidden"></div>
+  </main>
+
+  <script src="/static/live.js"></script>
+</body>
+</html>
